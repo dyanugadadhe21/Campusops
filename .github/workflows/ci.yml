@@ -47,10 +47,10 @@ jobs:
         with:
         context: .
         push:true
-        tags:|
-             dnyanu21/campusops1:latest
-            dnyanu21/campusops1:${{ github.sha }}
-
+        - name: Build Docker image
+  run: |
+    docker build -t dnyanu21/campusops1:latest .
+    docker tag dnyanu21/campusops1:latest dnyanu21/campusops1:${{ github.sha }}
             name: Success message
             run: echo "Docker image pushed successfully with tags: latest and ${{ env.VERSION }}"
           
