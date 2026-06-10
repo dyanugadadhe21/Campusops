@@ -1,64 +1,60 @@
-name: CampusOps CI/CD Pipeline (GHCR)
+name: CampusOps Phase 1 - CI Pipeline with Artifacts
 
 on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 
 jobs:
-  build-and-run:
+  build-and-package:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set image name
-      - name: Set Image Name
-        run: echo "IMAGE=ghcr.io/${{ github.repository_owner }}/campusops" >> $GITHUB_ENV
+      # 2️⃣ Get version (tag or dev build)
+      - name: Set Version Info
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "VERSION=dev-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          fi
 
-      # 3️⃣ Login to GHCR
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      # 3️⃣ Get short SHA
+      - name: Get Commit SHA
+        run: echo "SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # 4️⃣ Build Docker image
+      # 4️⃣ Setup Docker Build Environment
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 5️⃣ Build Docker Image (LOCAL ONLY - Phase 1 requirement)
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE:latest .
-          docker tag $IMAGE:latest $IMAGE:${{ github.sha }}
+          docker build -t campusops:$VERSION .
+          docker tag campusops:$VERSION campusops:$SHA
 
-      # 5️⃣ Push Docker image to GHCR
-      - name: Push Docker Image
-        run: |
-          docker push $IMAGE:latest
-          docker push $IMAGE:${{ github.sha }}
-
-      # 6️⃣ Run container test
-      - name: Run Container Test
-        run: |
-          docker run -d -p 5000:5000 $IMAGE:latest
-          sleep 5
-          curl http://localhost:5000 || true
-
-      # 7️⃣ Save build artifact (LOG FILE)
-      - name: Save Artifact
+      # 6️⃣ Save build output as artifact
+      - name: Create Artifact Folder
         run: |
           mkdir artifacts
-          echo "Build successful for $IMAGE:${{ github.sha }}" > artifacts/build-info.txt
+          echo "CampusOps Build Successful" > artifacts/build-info.txt
+          echo "Version: $VERSION" >> artifacts/build-info.txt
+          echo "Commit SHA: $SHA" >> artifacts/build-info.txt
           echo "Timestamp: $(date)" >> artifacts/build-info.txt
 
-      # 8️⃣ Upload artifact to GitHub
-      - name: Upload Artifact
+      # 7️⃣ Upload artifact to GitHub
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: campusops-build-artifact
+          name: campusops-build-artifact-${{ env.VERSION }}
           path: artifacts/
 
-      # 9️⃣ Success message
+      # 8️⃣ Optional: Tag info message
       - name: Success Message
-        run: echo "🚀 Build, Push, Test + Artifacts completed successfully"
+        run: echo "🚀 Phase 1 CI completed with artifacts + Docker build"
