@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Get version (tag or dev build)
+      # Set Version
       - name: Set Version Info
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
@@ -25,36 +25,44 @@ jobs:
             echo "VERSION=dev-${GITHUB_SHA::7}" >> $GITHUB_ENV
           fi
 
-      # 3️⃣ Get short SHA
+      # Get Short SHA
       - name: Get Commit SHA
         run: echo "SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # 4️⃣ Setup Docker Build Environment
+      # Setup Docker
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 5️⃣ Build Docker Image (LOCAL ONLY - Phase 1 requirement)
+      # Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t campusops:$VERSION .
-          docker tag campusops:$VERSION campusops:$SHA
+          docker build -t campusops:${VERSION} .
+          docker tag campusops:${VERSION} campusops:${SHA}
 
-      # 6️⃣ Save build output as artifact
+      # Create Build Artifact
       - name: Create Artifact Folder
         run: |
           mkdir artifacts
+
           echo "CampusOps Build Successful" > artifacts/build-info.txt
-          echo "Version: $VERSION" >> artifacts/build-info.txt
-          echo "Commit SHA: $SHA" >> artifacts/build-info.txt
+          echo "================================" >> artifacts/build-info.txt
+          echo "Version: ${VERSION}" >> artifacts/build-info.txt
+          echo "Commit SHA: ${GITHUB_SHA}" >> artifacts/build-info.txt
+          echo "Short SHA: ${SHA}" >> artifacts/build-info.txt
+          echo "Repository: ${GITHUB_REPOSITORY}" >> artifacts/build-info.txt
           echo "Timestamp: $(date)" >> artifacts/build-info.txt
 
-      # 7️⃣ Upload artifact to GitHub
+      # Upload Artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: campusops-build-artifact-${{ env.VERSION }}
           path: artifacts/
+          retention-days: 7
 
-      # 8️⃣ Optional: Tag info message
+      # Success Message
       - name: Success Message
-        run: echo "🚀 Phase 1 CI completed with artifacts + Docker build"
+        run: |
+          echo "🚀 Phase 1 CI completed successfully"
+          echo "📦 Artifact Version: ${VERSION}"
+          echo "🔖 Commit: ${SHA}"
