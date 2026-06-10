@@ -45,9 +45,12 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.VERSION }}
-          name: CampusOps Release ${{ env.VERSION }}
-          body: |
-            🚀 CampusOps Auto Release
-            🔖 Version: ${{ env.VERSION }}
-            🧠 Commit: ${{ env.SHA }}
+        context: .
+        push:true
+        tags:|
+             dnyanu21/campusops1:latest
+            dnyanu21/campusops1:${{ github.sha }}
+
+            name: Success message
+            run: echo "Docker image pushed successfully with tags: latest and ${{ env.VERSION }}"
+          
