@@ -38,13 +38,27 @@ jobs:
           docker push $IMAGE:latest
           docker push $IMAGE:${{ github.sha }}
 
-      # 6️⃣ Run container test (optional)
+      # 6️⃣ Run container test
       - name: Run Container Test
         run: |
           docker run -d -p 5000:5000 $IMAGE:latest
           sleep 5
           curl http://localhost:5000 || true
 
-      # 7️⃣ Success message
+      # 7️⃣ Save build artifact (LOG FILE)
+      - name: Save Artifact
+        run: |
+          mkdir artifacts
+          echo "Build successful for $IMAGE:${{ github.sha }}" > artifacts/build-info.txt
+          echo "Timestamp: $(date)" >> artifacts/build-info.txt
+
+      # 8️⃣ Upload artifact to GitHub
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: campusops-build-artifact
+          path: artifacts/
+
+      # 9️⃣ Success message
       - name: Success Message
-        run: echo "🚀 Build, Push, and Test completed successfully on GHCR!"
+        run: echo "🚀 Build, Push, Test + Artifacts completed successfully"
